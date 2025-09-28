@@ -52,7 +52,11 @@ export class MemStorage implements IStorage {
 
   async createGame(insertGame: InsertGame): Promise<Game> {
     const id = randomUUID();
-    const game: Game = { ...insertGame, id };
+    const game: Game = { 
+      ...insertGame, 
+      id,
+      description: insertGame.description || null
+    };
     this.games.set(id, game);
     return game;
   }
