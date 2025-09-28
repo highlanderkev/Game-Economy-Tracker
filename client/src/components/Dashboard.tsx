@@ -4,33 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
-  Gamepad2, 
+  Gamepad, 
   Coins, 
   TrendingDown, 
   Search, 
   Plus,
   BarChart3,
-  DollarSign 
+  Loader2
 } from "lucide-react";
 import GameCard from "./GameCard";
 import AddGameForm from "./AddGameForm";
-import type { GameWithCurrencies } from "@shared/schema";
+import AddCurrencyForm from "./AddCurrencyForm";
+import { useGames, useCreateGame } from "@/hooks/useGames";
+import { useCreateCurrency } from "@/hooks/useCurrencies";
+import type { InsertGame, InsertCurrency } from "@shared/schema";
 
-interface DashboardProps {
-  games?: GameWithCurrencies[];
-  onAddGame?: (game: any) => void;
-  onAddCurrency?: (gameId: string) => void;
-  onViewGameDetails?: (gameId: string) => void;
-}
-
-export default function Dashboard({ 
-  games = [], 
-  onAddGame, 
-  onAddCurrency, 
-  onViewGameDetails 
-}: DashboardProps) {
+export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddCurrencyForm, setShowAddCurrencyForm] = useState(false);
+  const [selectedGameForCurrency, setSelectedGameForCurrency] = useState<{id: string, title: string} | null>(null);
+
+  // Use real API hooks
+  const { data: games = [], isLoading, error } = useGames();
+  const createGameMutation = useCreateGame();
+  const createCurrencyMutation = useCreateCurrency();
 
   // Calculate dashboard stats
   const totalGames = games.length;
@@ -45,10 +43,42 @@ export default function Dashboard({
     game.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddGame = (gameData: any) => {
-    onAddGame?.(gameData);
+  const handleAddGame = (gameData: InsertGame) => {
+    createGameMutation.mutate(gameData);
     setShowAddForm(false);
   };
+
+  const handleAddCurrency = (gameId: string) => {
+    const game = games.find(g => g.id === gameId);
+    if (game) {
+      setSelectedGameForCurrency({ id: gameId, title: game.title });
+      setShowAddCurrencyForm(true);
+    }
+  };
+
+  const handleSubmitCurrency = (currencyData: InsertCurrency) => {
+    createCurrencyMutation.mutate(currencyData);
+    setShowAddCurrencyForm(false);
+    setSelectedGameForCurrency(null);
+  };
+
+  const handleViewGameDetails = (gameId: string) => {
+    console.log('View game details triggered for game:', gameId);
+    // TODO: Navigate to game details page
+  };
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-6">
+        <Card className="p-8 text-center">
+          <div className="text-destructive">
+            <h3 className="text-lg font-medium mb-2">Error loading games</h3>
+            <p>Please try refreshing the page.</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -77,7 +107,7 @@ export default function Dashboard({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Games</CardTitle>
-            <Gamepad2 className="h-4 w-4 text-muted-foreground" />
+            <Gamepad className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-games">
@@ -156,20 +186,42 @@ export default function Dashboard({
           <AddGameForm
             onSubmit={handleAddGame}
             onCancel={() => setShowAddForm(false)}
+            isLoading={createGameMutation.isPending}
+          />
+        </div>
+      )}
+
+      {/* Add Currency Form Modal */}
+      {showAddCurrencyForm && selectedGameForCurrency && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" data-testid="modal-add-currency">
+          <AddCurrencyForm
+            gameId={selectedGameForCurrency.id}
+            gameTitle={selectedGameForCurrency.title}
+            onSubmit={handleSubmitCurrency}
+            onCancel={() => {
+              setShowAddCurrencyForm(false);
+              setSelectedGameForCurrency(null);
+            }}
+            isLoading={createCurrencyMutation.isPending}
           />
         </div>
       )}
 
       {/* Games Grid */}
       <div className="space-y-4">
-        {filteredGames.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-muted-foreground">Loading games...</span>
+          </div>
+        ) : filteredGames.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredGames.map((game) => (
               <GameCard
                 key={game.id}
                 game={game}
-                onAddCurrency={() => onAddCurrency?.(game.id)}
-                onViewDetails={() => onViewGameDetails?.(game.id)}
+                onAddCurrency={() => handleAddCurrency(game.id)}
+                onViewDetails={() => handleViewGameDetails(game.id)}
               />
             ))}
           </div>
@@ -183,7 +235,7 @@ export default function Dashboard({
         ) : (
           <Card className="p-8 text-center">
             <div className="text-muted-foreground">
-              <Gamepad2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <Gamepad className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-medium mb-2">No games added yet</h3>
               <p className="mb-4">Start tracking your game economies by adding your first game!</p>
               <Button onClick={() => setShowAddForm(true)} data-testid="button-add-first-game">

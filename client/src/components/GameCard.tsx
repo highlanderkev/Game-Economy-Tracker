@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Gamepad2, Coins, TrendingDown, Plus } from "lucide-react";
+import { Gamepad, Coins, TrendingDown, Plus } from "lucide-react";
 import type { GameWithCurrencies } from "@shared/schema";
 
 interface GameCardProps {
@@ -22,7 +22,7 @@ export default function GameCard({ game, onAddCurrency, onViewDetails }: GameCar
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="p-2 rounded-md bg-sidebar-accent/20">
-              <Gamepad2 className="h-5 w-5 text-sidebar-accent" data-testid="icon-game" />
+              <Gamepad className="h-5 w-5 text-sidebar-accent" data-testid="icon-game" />
             </div>
             <div className="min-w-0 flex-1">
               <CardTitle className="text-lg font-semibold truncate" data-testid="text-game-title">
